@@ -150,7 +150,3 @@ def clear_db():
     session.execute(delete(Book))
     session.commit()
     typer.echo("Cleared database.")
-
-
-if __name__ == '__main__':
-    app()
