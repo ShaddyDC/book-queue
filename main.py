@@ -38,6 +38,30 @@ def prompt(message: str, validator: Callable[[Any], bool] = None, default=None, 
             typer.echo(f"Invalid input: {value}")
 
 
+def book_acc_priority(book: Book, current: datetime.datetime):
+    return book.priority * (current - book.modified).total_seconds() / datetime.timedelta(days=1).total_seconds()
+
+
+def select_book(session: Session):
+    current = datetime.datetime.now()
+    books_queried = session.query(Book).all()
+    books = [(book_acc_priority(book, current), book)
+             for book in books_queried]
+
+    if len(books) == 0:
+        typer.echo("No books found")
+        return None
+
+    books.sort(key=lambda x: x[0], reverse=True)
+    table = [[i+1, book.file, priority, book.priority, book.modified]
+             for (i, (priority, book)) in enumerate(books)]
+    print(tabulate(table, headers=["No", "File",
+          "Acc Prio", "Prio", "Modified"], tablefmt="github"))
+    choice = prompt("Pick book", default=1, type=int,
+                    validator=lambda x: 1 <= x <= len(books))
+    return books[choice-1][1]
+
+
 def remove_book(session: Session, book: Book):
     session.delete(book)
     os.remove(os.path.join(folder, book.file))
@@ -73,21 +97,8 @@ def add(file: str, priority: int = 10):
 @app.command()
 def read():
     session = get_session()
-    current = datetime.datetime.now()
-    books_queried = session.query(Book).all()
-    books = [(book.priority * (current - book.modified).total_seconds() / datetime.timedelta(days=1).total_seconds(), book)
-             for book in books_queried]
-    if not books:
-        print("No books in library.")
-        return
-    books.sort(key=lambda x: x[0], reverse=True)
-    table = [[i+1, book.file, priority, book.priority, book.modified]
-             for (i, (priority, book)) in enumerate(books)]
-    print(tabulate(table, headers=["No", "File",
-          "Acc Prio", "Prio", "Modified"], tablefmt="github"))
-    choice = prompt("Read Book", default=1, type=int,
-                    validator=lambda x: 1 <= x <= len(books))
-    book = books[choice-1][1]
+    book = select_book(session)
+
     subprocess.run(["zathura", folder + book.file])
 
     choice = prompt("(d)one, (q)uit, (r)emove", default="d",
