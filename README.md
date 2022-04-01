@@ -17,3 +17,12 @@ Simple tool to manage a collection of in-progress books to get a varied reading 
 
 ```
 
+## Getting started
+
+You should be able to install book-queue with pip.
+
+```
+pip install book-queue
+```
+
+You will find instructions for use with `book-queue --help`.
