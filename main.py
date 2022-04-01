@@ -95,6 +95,19 @@ def add(file: str, priority: int = 10):
 
 
 @app.command()
+def remove(file: str):
+    file = os.path.basename(file)
+    session = get_session()
+    book = session.query(Book).filter_by(file=file).first()
+    if book is None:
+        print(f"File {file} not found in library.")
+        return
+
+    remove_book(session, book)
+    print(f"Removed file {file} from library.")
+
+
+@app.command()
 def read():
     session = get_session()
     book = select_book(session)
