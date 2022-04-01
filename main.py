@@ -1,17 +1,22 @@
+import pathlib
 import subprocess
 import os
 import shutil
 from typing import Any, Callable
 from more_itertools import tabulate
 import typer
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, select, delete
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, delete
 from sqlalchemy.orm import Session, declarative_base
 import datetime
 from tabulate import tabulate
+from pathlib import Path
 
-app = typer.Typer()
+APP_NAME = "Book Queue"
+APP_VERSION = "0.1.0"
+
+app = typer.Typer(name=APP_NAME, help=APP_NAME)
+
 Base = declarative_base()
-folder = "./"
 
 
 class Book(Base):
@@ -22,8 +27,17 @@ class Book(Base):
     priority = Column(Integer)
 
 
+def get_folder():
+    folder = Path(typer.get_app_dir(APP_NAME))
+    if not folder.exists():
+        typer.echo(f"Creating folder {folder}")
+        os.mkdir(folder)
+    return folder
+
+
 def get_session():
-    engine = create_engine(f"sqlite:///{folder}/db")
+    folder = get_folder()
+    engine = create_engine(f"sqlite:///{folder / 'books.db'}")
     Base.metadata.create_all(engine)
 
     return Session(engine)
@@ -64,7 +78,7 @@ def select_book(session: Session):
 
 def remove_book(session: Session, book: Book):
     session.delete(book)
-    os.remove(os.path.join(folder, book.file))
+    os.remove(get_folder() / book.file)
     session.commit()
 
 
@@ -75,9 +89,9 @@ def add(file: str, priority: int = 10):
         return
 
     basename = os.path.basename(file)
-    local_file = folder + basename
+    local_file = get_folder() / basename
 
-    if os.path.exists(local_file) and typer.confirm("File {basename} already exists, overwrite?"):
+    if not os.path.exists(local_file) or typer.confirm("File {basename} already exists, overwrite?"):
         shutil.copy2(file, local_file)
 
     session = get_session()
@@ -112,7 +126,10 @@ def read(reader: str = "zathura"):
     session = get_session()
     book = select_book(session)
 
-    subprocess.run([reader, folder + book.file])
+    if book is None:
+        return
+
+    subprocess.run([reader, get_folder() / book.file])
 
     choice = prompt("(d)one, (q)uit, (r)emove", default="d",
                     type=str, validator=lambda x: x in ["d", "q", "r"])
