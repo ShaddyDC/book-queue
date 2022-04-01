@@ -1,9 +1,7 @@
-import pathlib
 import subprocess
 import os
 import shutil
 from typing import Any, Callable
-from more_itertools import tabulate
 import typer
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, delete
 from sqlalchemy.orm import Session, declarative_base
