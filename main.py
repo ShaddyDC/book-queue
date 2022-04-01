@@ -108,11 +108,11 @@ def remove(file: str):
 
 
 @app.command()
-def read():
+def read(reader: str = "zathura"):
     session = get_session()
     book = select_book(session)
 
-    subprocess.run(["zathura", folder + book.file])
+    subprocess.run([reader, folder + book.file])
 
     choice = prompt("(d)one, (q)uit, (r)emove", default="d",
                     type=str, validator=lambda x: x in ["d", "q", "r"])
