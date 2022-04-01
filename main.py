@@ -1,5 +1,4 @@
 import subprocess
-import os
 import shutil
 from typing import Any, Callable
 import typer
@@ -29,7 +28,7 @@ def get_folder():
     folder = Path(typer.get_app_dir(APP_NAME))
     if not folder.exists():
         typer.echo(f"Creating folder {folder}")
-        os.mkdir(folder)
+        folder.mkdir(parents=True)
     return folder
 
 
@@ -76,20 +75,20 @@ def select_book(session: Session):
 
 def remove_book(session: Session, book: Book):
     session.delete(book)
-    os.remove(get_folder() / book.file)
+    (get_folder() / book.file).unlink()
     session.commit()
 
 
 @app.command()
-def add(file: str, priority: int = 10):
-    if not os.path.exists(file):
+def add(file: Path, priority: int = 10):
+    if not file.exists():
         typer.echo(f"File '{file}' does not exist.")
         return
 
-    basename = os.path.basename(file)
+    basename = file.name
     local_file = get_folder() / basename
 
-    if not os.path.exists(local_file) or typer.confirm("File {basename} already exists, overwrite?"):
+    if not local_file.exists() or typer.confirm(f"File {basename} already exists, overwrite?"):
         shutil.copy2(file, local_file)
 
     session = get_session()
@@ -107,8 +106,8 @@ def add(file: str, priority: int = 10):
 
 
 @app.command()
-def remove(file: str):
-    file = os.path.basename(file)
+def remove(file: Path):
+    file = file.name
     session = get_session()
     book = session.query(Book).filter_by(file=file).first()
     if book is None:
