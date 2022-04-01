@@ -55,8 +55,8 @@ def select_book(session: Session):
     books.sort(key=lambda x: x[0], reverse=True)
     table = [[i+1, book.file, priority, book.priority, book.modified]
              for (i, (priority, book)) in enumerate(books)]
-    print(tabulate(table, headers=["No", "File",
-          "Acc Prio", "Prio", "Modified"], tablefmt="github"))
+    typer.echo(tabulate(table, headers=["No", "File",
+                                        "Acc Prio", "Prio", "Modified"], tablefmt="github"))
     choice = prompt("Pick book", default=1, type=int,
                     validator=lambda x: 1 <= x <= len(books))
     return books[choice-1][1]
@@ -71,7 +71,7 @@ def remove_book(session: Session, book: Book):
 @app.command()
 def add(file: str, priority: int = 10):
     if not os.path.exists(file):
-        print(f"File '{file}' does not exist.")
+        typer.echo(f"File '{file}' does not exist.")
         return
 
     basename = os.path.basename(file)
@@ -85,13 +85,13 @@ def add(file: str, priority: int = 10):
     session = get_session()
     if session.query(Book.id).filter_by(file=basename).first() is not None:
         # TODO: update priority instead
-        print(f"File {basename} already in libary.")
+        typer.echo(f"File {basename} already in libary.")
         return
 
     session.add(
         Book(file=basename, modified=datetime.datetime.now(), priority=priority))
     session.commit()
-    print(f"Added file {file} to library.")
+    typer.echo(f"Added file {file} to library.")
 
 
 @app.command()
@@ -100,11 +100,11 @@ def remove(file: str):
     session = get_session()
     book = session.query(Book).filter_by(file=file).first()
     if book is None:
-        print(f"File {file} not found in library.")
+        typer.echo(f"File {file} not found in library.")
         return
 
     remove_book(session, book)
-    print(f"Removed file {file} from library.")
+    typer.echo(f"Removed file {file} from library.")
 
 
 @app.command()
@@ -119,12 +119,12 @@ def read(reader: str = "zathura"):
     if choice == "d":
         book.modified = datetime.datetime.now()
         session.commit()
-        print(f"Rescheduled {book.file} for reading.")
+        typer.echo(f"Rescheduled {book.file} for reading.")
     elif choice == "q":
         return
     elif choice == "r":
         remove_book(session, book)
-        print(f"Removed book {book.file} from library.")
+        typer.echo(f"Removed book {book.file} from library.")
 
 
 @app.command()
