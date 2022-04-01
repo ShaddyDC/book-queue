@@ -1,6 +1,7 @@
 import subprocess
 import os
 import shutil
+from typing import Any, Callable
 from more_itertools import tabulate
 import typer
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, select, delete
@@ -26,6 +27,15 @@ def get_session():
     Base.metadata.create_all(engine)
 
     return Session(engine)
+
+
+def prompt(message: str, validator: Callable[[Any], bool] = None, default=None, **kwargs):
+    while True:
+        value = typer.prompt(message, default=default, **kwargs)
+        if validator is None or validator(value):
+            return value
+        else:
+            typer.echo(f"Invalid input: {value}")
 
 
 @app.command()
@@ -69,10 +79,8 @@ def read():
              for (i, (priority, book)) in enumerate(books)]
     print(tabulate(table, headers=["No", "File",
           "Acc Prio", "Prio", "Modified"], tablefmt="github"))
-    choice = typer.prompt("Read Book", default=1, type=int)
-    if not 1 <= choice <= len(books):
-        print("Invalid choice")
-        return
+    choice = prompt("Read Book", default=1, type=int,
+                    validator=lambda x: 1 <= x <= len(books))
     book = books[choice-1][1]
     subprocess.run(["zathura", folder + book.file])
     book.modified = datetime.datetime.now()
