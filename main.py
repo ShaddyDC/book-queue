@@ -38,6 +38,12 @@ def prompt(message: str, validator: Callable[[Any], bool] = None, default=None, 
             typer.echo(f"Invalid input: {value}")
 
 
+def remove_book(session: Session, book: Book):
+    session.delete(book)
+    os.remove(os.path.join(folder, book.file))
+    session.commit()
+
+
 @app.command()
 def add(file: str, priority: int = 10):
     if not os.path.exists(file):
@@ -83,8 +89,18 @@ def read():
                     validator=lambda x: 1 <= x <= len(books))
     book = books[choice-1][1]
     subprocess.run(["zathura", folder + book.file])
-    book.modified = datetime.datetime.now()
-    session.commit()
+
+    choice = prompt("(d)one, (q)uit, (r)emove", default="d",
+                    type=str, validator=lambda x: x in ["d", "q", "r"])
+    if choice == "d":
+        book.modified = datetime.datetime.now()
+        session.commit()
+        print(f"Rescheduled {book.file} for reading.")
+    elif choice == "q":
+        return
+    elif choice == "r":
+        remove_book(session, book)
+        print(f"Removed book {book.file} from library.")
 
 
 @app.command()
