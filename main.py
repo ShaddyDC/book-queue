@@ -113,7 +113,8 @@ def remove(file: Path):
     if book is None:
         typer.echo(f"File {file} not found in library.")
         return
-
+    if not typer.confirm("Are you sure you want to remove this book?"):
+        return
     remove_book(session, book)
     typer.echo(f"Removed file {file} from library.")
 
@@ -143,9 +144,12 @@ def read(reader: str = "zathura"):
 
 @app.command()
 def clear_db():
+    if not typer.confirm("Are you sure you want to clear the database?"):
+        return
     session = get_session()
     session.execute(delete(Book))
     session.commit()
+    typer.echo("Cleared database.")
 
 
 if __name__ == '__main__':
