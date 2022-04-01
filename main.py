@@ -77,15 +77,15 @@ def add(file: str, priority: int = 10):
     basename = os.path.basename(file)
     local_file = folder + basename
 
-    if os.path.exists(local_file) and not typer.confirm("File already exests, overwrite?"):
-        return
-
-    shutil.copy2(file, local_file)
+    if os.path.exists(local_file) and typer.confirm("File {basename} already exists, overwrite?"):
+        shutil.copy2(file, local_file)
 
     session = get_session()
-    if session.query(Book.id).filter_by(file=basename).first() is not None:
-        # TODO: update priority instead
-        typer.echo(f"File {basename} already in libary.")
+    if book := session.query(Book).filter_by(file=basename).first():
+        book.priority = priority
+        book.modified = datetime.datetime.now()
+        session.commit()
+        typer.echo(f"Updated priority of existing {basename} to {priority}.")
         return
 
     session.add(
